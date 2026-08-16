@@ -1,0 +1,83 @@
+# crypto-liquidation-stream
+> Unified real-time cryptocurrency liquidation WebSocket stream for Binance, Bybit, and OKX.
+
+## Overview
+`crypto-liquidation-stream` provides a high-performance, unified asynchronous WebSocket client for streaming live liquidation events from the top 3 crypto derivatives exchanges: Binance Futures (USDT-M), Bybit Linear (v5), and OKX SWAP (v5).
+
+## Key Classes & Types
+
+### `LiquidationStream`
+Primary async orchestrator class.
+```python
+from crypto_liquidation import LiquidationStream
+
+stream = LiquidationStream(
+    exchanges=["binance", "bybit", "okx"], # Optional: specify exchanges (default: all 3)
+    symbols=["BTCUSDT", "ETHUSDT"],        # Optional: filter symbols (default: all)
+    min_notional_usd=500.0                 # Optional: filter min USD size (default: 0.0)
+)
+```
+
+### `LiquidationEvent`
+Normalized event schema:
+- `event.exchange: str` -> `"binance"`, `"bybit"`, or `"okx"`
+- `event.symbol: str` -> Unified uppercase symbol (e.g. `"BTCUSDT"`, `"ETHUSDT"`)
+- `event.timestamp: int` -> Unix millisecond timestamp (UTC)
+- `event.datetime_iso: str` -> ISO 8601 formatted UTC string
+- `event.side: OrderSide` -> `OrderSide.SELL` (Long liq) or `OrderSide.BUY` (Short liq)
+- `event.pos_side: PositionSide` -> `PositionSide.LONG` or `PositionSide.SHORT`
+- `event.price: float` -> Liquidation execution price in USD
+- `event.amount: float` -> Liquidated coin quantity
+- `event.notional_usd: float` -> Total liquidation value in USD (price * amount)
+- `event.is_long_liquidation: bool` -> True if Long position was liquidated
+- `event.is_short_liquidation: bool` -> True if Short position was liquidated
+- `event.to_dict() -> dict` -> JSON-serializable Python dictionary
+- `event.to_json() -> str` -> Serialized JSON string
+
+## Quick Usage Snippets for AI Agents
+
+### Pattern 1: Async Iterator (`async for`)
+```python
+import asyncio
+from crypto_liquidation import LiquidationStream
+
+async def main():
+    async with LiquidationStream(symbols=["BTCUSDT", "SOLUSDT"], min_notional_usd=1000) as stream:
+        async for event in stream:
+            print(f"[{event.exchange}] {event.symbol} {event.side.value.upper()}: ${event.notional_usd:,.2f}")
+
+asyncio.run(main())
+```
+
+### Pattern 2: Event-driven Callback
+```python
+import asyncio
+from crypto_liquidation import LiquidationStream, LiquidationEvent
+
+def handle_liq(e: LiquidationEvent):
+    print(f"Liquidation on {e.exchange}: {e.symbol} ${e.notional_usd:,.2f}")
+
+async def main():
+    stream = LiquidationStream(min_notional_usd=500)
+    stream.add_callback(handle_liq)
+    await stream.start()
+    await asyncio.sleep(60)
+### Pattern 3: High-Throughput Micro-Batching (for DBs / ML)
+```python
+import asyncio
+from crypto_liquidation import LiquidationStream
+
+async def main():
+    stream = LiquidationStream()
+    await stream.start()
+    # Batch yields every 20ms or when 100 items are queued
+    async for batch in stream.stream_batches(max_batch_size=100, max_interval_ms=20):
+        print(f"Bulk inserting {len(batch)} liquidation records")
+
+asyncio.run(main())
+```
+
+## CLI Command
+```bash
+python -m crypto_liquidation --exchanges binance,bybit,okx --symbols BTCUSDT,ETHUSDT --min-usd 1000 --format table
+```

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crypto-liquidation-stream"
+version = "1.0.0"
+description = "Unified high-performance real-time cryptocurrency liquidation WebSocket stream for Binance, Bybit, and OKX"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "llinux910" }
+]
+keywords = [
+    "crypto",
+    "liquidation",
+    "websocket",
+    "binance",
+    "bybit",
+    "okx",
+    "trading",
+    "orderflow",
+    "footprint",
+    "derivatives"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+fast = [
+    "orjson>=3.9.0",
+    "uvloop>=0.19.0; sys_platform != 'win32'",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.scripts]
+crypto-liquidation = "crypto_liquidation.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["crypto_liquidation*"]
