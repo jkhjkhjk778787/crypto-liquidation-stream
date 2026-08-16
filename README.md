@@ -71,10 +71,38 @@ async def main():
     
     await stream.start()
     await asyncio.sleep(60)
-    await stream.stop()
+### 3. High-Throughput Micro-Batching (DB Ingestion)
+
+```python
+import asyncio
+from crypto_liquidation import LiquidationStream
+
+async def main():
+    stream = LiquidationStream(include_raw=False)
+    await stream.start()
+    # Collects up to 100 events or flushes every 20ms
+    async for batch in stream.stream_batches(max_batch_size=100, max_interval_ms=20):
+        # Bulk insert into ClickHouse / Redis / PostgreSQL
+        print(f"Bulk inserting {len(batch)} liquidation records to DB")
 
 if __name__ == "__main__":
     asyncio.run(main())
+```
+
+### 4. 🤖 Google Gemini Tool / Function Calling Integration
+
+```python
+from google import genai
+from crypto_liquidation.gemini import get_liquidation_tools
+
+client = genai.Client()
+# Gemini directly calls fetch_live_liquidations to analyze real-time orderflow
+response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents="Check if there is a liquidation cascade on BTC or ETH right now.",
+    config={"tools": get_liquidation_tools()}
+)
+print(response.text)
 ```
 
 ---

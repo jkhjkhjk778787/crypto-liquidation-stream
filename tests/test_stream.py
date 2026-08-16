@@ -9,6 +9,8 @@ from crypto_liquidation import (
     normalize_symbol,
     OrderSide,
     PositionSide,
+    format_events_for_gemini,
+    get_liquidation_tools,
 )
 from crypto_liquidation.utils import fast_json_loads
 
@@ -50,6 +52,27 @@ def test_liquidation_event_model():
     assert d["raw"] is None
 
 
+def test_gemini_helpers():
+    event = LiquidationEvent(
+        exchange="binance",
+        symbol="BTCUSDT",
+        timestamp=1786838342000,
+        side=OrderSide.SELL,
+        pos_side=PositionSide.LONG,
+        price=95000.0,
+        amount=1.0,
+        notional_usd=95000.0,
+    )
+    md = format_events_for_gemini([event], title="Test Snapshot")
+    assert "Test Snapshot" in md
+    assert "BTCUSDT" in md
+    assert "95,000.00" in md
+
+    tools = get_liquidation_tools()
+    assert len(tools) == 1
+    assert tools[0]["name"] == "fetch_live_liquidations"
+
+
 def test_live_stream_smoke():
     """Verify that LiquidationStream starts and connects to Binance, Bybit, and OKX without errors."""
     async def _async_test():
@@ -79,7 +102,6 @@ def test_stream_batches_smoke():
         )
         await stream.start()
         
-        # Test iteration for 1 second
         async def _consume():
             async for batch in stream.stream_batches(max_batch_size=10, max_interval_ms=50):
                 assert isinstance(batch, list)
